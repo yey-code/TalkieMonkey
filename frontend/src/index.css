@@ -1,0 +1,156 @@
+@import "tailwindcss";
+
+@theme {
+  --font-fun: 'Fredoka', 'Comic Sans MS', cursive, sans-serif;
+  --font-body: 'Nunito', 'Fredoka', sans-serif;
+
+  /* Jungle palette */
+  --color-jungle-green: #2ecc71;
+  --color-jungle-dark: #1a9c54;
+  --color-jungle-deep: #0d6b3a;
+  --color-jungle-light: #d5f5e3;
+
+  /* Monkey palette */
+  --color-monkey-orange: #ff9f43;
+  --color-monkey-dark: #e67e22;
+  --color-monkey-light: #ffecd2;
+
+  /* Sky palette */
+  --color-sky-blue: #54a0ff;
+  --color-sky-light: #dfe6e9;
+  --color-sky-bright: #48dbfb;
+
+  /* Accents */
+  --color-sunset-pink: #ee5a24;
+  --color-sunset-light: #fef0ec;
+  --color-banana-yellow: #feca57;
+  --color-banana-light: #fff9db;
+  --color-grape-purple: #6c5ce7;
+  --color-berry-pink: #fd79a8;
+
+  /* Surfaces */
+  --color-card-bg: #ffffff;
+  --color-card-border: #2d3436;
+}
+
+/* ── Base ─────────────────────────────────────────────────── */
+html, body, #root {
+  height: 100%;
+  margin: 0;
+  overflow: hidden;
+}
+
+body {
+  font-family: var(--font-body);
+  background: #0d6b3a;
+}
+
+/* ── Neo-brutalism card utility ──────────────────────────── */
+.card-brutal {
+  background: white;
+  border: 3px solid #2d3436;
+  border-radius: 1.25rem;
+  box-shadow: 6px 6px 0 #2d3436;
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+.card-brutal:hover {
+  transform: translate(-2px, -2px);
+  box-shadow: 8px 8px 0 #2d3436;
+}
+.card-brutal-sm {
+  background: white;
+  border: 2px solid #2d3436;
+  border-radius: 1rem;
+  box-shadow: 4px 4px 0 #2d3436;
+}
+
+/* ── Animations ──────────────────────────────────────────── */
+@keyframes bounce-word {
+  0%, 100% { transform: translateY(0); }
+  40% { transform: translateY(-12px); }
+  60% { transform: translateY(-6px); }
+}
+@keyframes pulse-record {
+  0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(238,90,36,.6); }
+  50% { transform: scale(1.06); box-shadow: 0 0 0 24px rgba(238,90,36,0); }
+}
+@keyframes wiggle {
+  0%,100% { transform: rotate(0deg); }
+  15% { transform: rotate(-12deg); }
+  30% { transform: rotate(10deg); }
+  45% { transform: rotate(-8deg); }
+  60% { transform: rotate(6deg); }
+  75% { transform: rotate(-3deg); }
+}
+@keyframes float-in {
+  0% { opacity: 0; transform: translateY(24px) scale(.95); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes shimmer {
+  0% { background-position: -200% center; }
+  100% { background-position: 200% center; }
+}
+@keyframes float-gentle {
+  0%,100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+@keyframes sway {
+  0%,100% { transform: rotate(-2deg); }
+  50% { transform: rotate(2deg); }
+}
+@keyframes wave-slow {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+@keyframes confetti-fall {
+  0% { transform: translateY(-10px) rotate(0deg); opacity: 1; }
+  100% { transform: translateY(100vh) rotate(720deg); opacity: 0; }
+}
+@keyframes pop-in {
+  0% { transform: scale(0); opacity: 0; }
+  60% { transform: scale(1.15); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+@keyframes typing {
+  from { width: 0; }
+  to { width: 100%; }
+}
+@keyframes score-count {
+  0% { transform: scale(0.5); opacity: 0; }
+  60% { transform: scale(1.2); }
+  100% { transform: scale(1); opacity: 1; }
+}
+@keyframes glow-pulse {
+  0%,100% { box-shadow: 0 0 20px rgba(254,202,87,.4), 0 0 60px rgba(254,202,87,.1); }
+  50% { box-shadow: 0 0 30px rgba(254,202,87,.6), 0 0 80px rgba(254,202,87,.2); }
+}
+
+.animate-bounce-word { animation: bounce-word .5s ease-in-out; }
+.animate-pulse-record { animation: pulse-record 1.5s ease-in-out infinite; }
+.animate-wiggle { animation: wiggle .6s ease-in-out; }
+.animate-float-in { animation: float-in .5s ease-out forwards; }
+.animate-shimmer {
+  background-size: 200% 100%;
+  animation: shimmer 2.5s linear infinite;
+}
+.animate-float-gentle { animation: float-gentle 3s ease-in-out infinite; }
+.animate-sway { animation: sway 4s ease-in-out infinite; }
+.animate-pop-in { animation: pop-in .4s ease-out forwards; }
+.animate-score-count { animation: score-count .6s ease-out forwards; }
+.animate-glow-pulse { animation: glow-pulse 2s ease-in-out infinite; }
+
+/* Stagger helper */
+.stagger-1 { animation-delay: .05s; }
+.stagger-2 { animation-delay: .1s; }
+.stagger-3 { animation-delay: .15s; }
+.stagger-4 { animation-delay: .2s; }
+.stagger-5 { animation-delay: .25s; }
+.stagger-6 { animation-delay: .3s; }
+.stagger-7 { animation-delay: .35s; }
+.stagger-8 { animation-delay: .4s; }
+
+/* Scrollbar for sidebar */
+.custom-scrollbar::-webkit-scrollbar { width: 6px; }
+.custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+.custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(255,255,255,.3); border-radius: 3px; }
+.custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,.5); }
