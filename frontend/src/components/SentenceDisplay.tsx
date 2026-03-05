@@ -4,17 +4,24 @@ interface SentenceDisplayProps {
   sentence: string;
   comparison: { word: string; status: 'correct' | 'incorrect' }[] | null;
   onWordClick: (word: string) => void;
+  difficulty?: number;
 }
+
+const difficultyInfo: Record<number, { emoji: string; label: string; color: string }> = {
+  1: { emoji: '🌱', label: 'Easy', color: 'bg-jungle-light text-jungle-dark' },
+  2: { emoji: '🌿', label: 'Medium', color: 'bg-monkey-light text-monkey-dark' },
+  3: { emoji: '🌳', label: 'Hard', color: 'bg-sunset-light text-sunset-pink' },
+};
 
 /**
  * Text Generate Effect — words appear one by one when idle,
  * then color-code on results. Neo-brutalism card styling.
- * Inspired by Aceternity UI's TextGenerateEffect.
  */
 export default function SentenceDisplay({
   sentence,
   comparison,
   onWordClick,
+  difficulty = 1,
 }: SentenceDisplayProps) {
   const [revealedCount, setRevealedCount] = useState(0);
   const words = sentence.split(' ');
@@ -44,6 +51,10 @@ export default function SentenceDisplay({
           <div className="w-3 h-3 rounded-full bg-jungle-green" />
           <span className="text-xs font-bold text-gray-400 uppercase tracking-widest font-[Fredoka]">
             Read this sentence
+          </span>
+          {/* Difficulty badge */}
+          <span className={`ml-auto text-[10px] font-bold font-[Fredoka] px-2 py-0.5 rounded-full border border-[#2d3436] ${difficultyInfo[difficulty]?.color || ''}`}>
+            {difficultyInfo[difficulty]?.emoji} {difficultyInfo[difficulty]?.label}
           </span>
         </div>
         {/* Sentence */}

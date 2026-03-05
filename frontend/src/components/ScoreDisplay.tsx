@@ -2,13 +2,14 @@ interface ScoreDisplayProps {
   score: number;
   correctCount: number;
   totalCount: number;
+  xpGained?: number;
 }
 
 /**
- * Animated score card with counting effect and emoji rewards.
+ * Animated score card with counting effect, emoji rewards, and XP earned.
  * Neo-brutalism style with gradient fills.
  */
-export default function ScoreDisplay({ score, correctCount, totalCount }: ScoreDisplayProps) {
+export default function ScoreDisplay({ score, correctCount, totalCount, xpGained }: ScoreDisplayProps) {
   const getScoreEmoji = () => {
     if (score === 100) return '🏆';
     if (score >= 80) return '⭐';
@@ -55,6 +56,11 @@ export default function ScoreDisplay({ score, correctCount, totalCount }: ScoreD
           </div>
           <p className="text-xs text-gray-500 font-semibold mb-2">
             {correctCount}/{totalCount} words correct
+            {xpGained !== undefined && xpGained > 0 && (
+              <span className="ml-2 text-grape-purple font-extrabold animate-xp-pop inline-block">
+                +{xpGained} XP ✨
+              </span>
+            )}
           </p>
           {/* Progress bar */}
           <div className="w-full h-3 bg-gray-100 rounded-full border-2 border-[#2d3436] overflow-hidden">

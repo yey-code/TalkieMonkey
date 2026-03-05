@@ -1,24 +1,26 @@
 interface MonkeyMascotProps {
   state: 'idle' | 'recording' | 'processing' | 'success' | 'tryAgain';
+  compact?: boolean;
 }
 
 /**
- * Interactive monkey mascot zone with SVG monkey, animated
- * speech bubble, and state-driven expressions.
+ * Interactive monkey mascot zone with animated
+ * speech bubble and state-driven expressions.
+ * `compact` mode renders just the emoji + small bubble for mobile inline use.
  */
-export default function MonkeyMascot({ state }: MonkeyMascotProps) {
+export default function MonkeyMascot({ state, compact = false }: MonkeyMascotProps) {
   const getMessage = () => {
     switch (state) {
       case 'idle':
-        return "Read the sentence and press the big button!";
+        return compact ? "Tap to speak!" : "Read the sentence and press the big button!";
       case 'recording':
-        return "I'm listening! Keep going!";
+        return compact ? "Listening..." : "I'm listening! Keep going!";
       case 'processing':
-        return 'Let me think...';
+        return compact ? 'Thinking...' : 'Let me think...';
       case 'success':
-        return 'Amazing job! You nailed it!';
+        return compact ? 'Amazing!' : 'Amazing job! You nailed it!';
       case 'tryAgain':
-        return "Tap red words to hear them!";
+        return compact ? 'Try again!' : "Tap red words to hear them!";
       default:
         return "Let's practice!";
     }
@@ -42,6 +44,26 @@ export default function MonkeyMascot({ state }: MonkeyMascotProps) {
       default: return '👋';
     }
   };
+
+  // Compact mode for mobile top bar
+  if (compact) {
+    return (
+      <div className="flex items-center gap-2">
+        <span
+          className={`text-2xl transition-transform duration-300 ${
+            state === 'recording' ? 'animate-wiggle' : ''
+          } ${state === 'success' ? 'animate-bounce-word' : ''}`}
+        >
+          {getEmoji()}
+        </span>
+        <div className="card-brutal-sm px-2.5 py-1 bg-banana-light max-w-[140px]">
+          <p className="text-xs font-bold text-gray-700 font-[Fredoka] truncate">
+            {getStateIcon()} {getMessage()}
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col items-center gap-2 select-none">

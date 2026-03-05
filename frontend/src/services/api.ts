@@ -20,7 +20,7 @@ export interface PronunciationResult {
 }
 
 /**
- * Fetch a random sentence from the backend.
+ * Fetch a random sentence from the backend, optionally filtered by difficulty.
  */
 export async function fetchRandomSentence(difficulty?: number): Promise<Sentence> {
   const params = difficulty ? `?difficulty=${difficulty}` : '';
@@ -35,8 +35,6 @@ export async function fetchRandomSentence(difficulty?: number): Promise<Sentence
 
 /**
  * Send recorded audio to the Laravel backend for evaluation.
- * Laravel forwards the audio to the Hugging Face Space for transcription,
- * then compares against the target sentence and returns scored feedback.
  */
 export async function evaluateAudio(audioBlob: Blob, sentenceId: number): Promise<PronunciationResult> {
   const formData = new FormData();
@@ -54,4 +52,72 @@ export async function evaluateAudio(audioBlob: Blob, sentenceId: number): Promis
   }
 
   return response.json();
+}
+
+// ── XP helpers (client-side persistence via localStorage) ──
+
+const XP_KEY = 'talkiemonkey_xp';
+const LEVEL_KEY = 'talkiemonkey_level';
+const STREAK_KEY = 'talkiemonkey_streak';
+const STREAK_DATE_KEY = 'talkiemonkey_streak_date';
+const BEST_SCORE_KEY = 'talkiemonkey_best_score';
+const TOTAL_ATTEMPTS_KEY = 'talkiemonkey_total_attempts';
+
+export interface UserProgress {
+  xp: number;
+  level: number;
+  streak: number;
+  bestScore: number;
+  totalAttempts: number;
+}
+
+export function getXpForLevel(level: number): number {
+  return level * 100; // 100 XP per level
+}
+
+export function calculateXpGain(score: number, wordCount: number): number {
+  const baseXp = Math.round((score / 100) * wordCount * 5);
+  const perfectBonus = score === 100 ? 20 : 0;
+  const goodBonus = score >= 80 ? 10 : 0;
+  return baseXp + perfectBonus + goodBonus;
+}
+
+export function loadProgress(): UserProgress {
+  return {
+    xp: parseInt(localStorage.getItem(XP_KEY) || '0', 10),
+    level: parseInt(localStorage.getItem(LEVEL_KEY) || '1', 10),
+    streak: parseInt(localStorage.getItem(STREAK_KEY) || '0', 10),
+    bestScore: parseInt(localStorage.getItem(BEST_SCORE_KEY) || '0', 10),
+    totalAttempts: parseInt(localStorage.getItem(TOTAL_ATTEMPTS_KEY) || '0', 10),
+  };
+}
+
+export function saveProgress(progress: UserProgress): void {
+  localStorage.setItem(XP_KEY, progress.xp.toString());
+  localStorage.setItem(LEVEL_KEY, progress.level.toString());
+  localStorage.setItem(STREAK_KEY, progress.streak.toString());
+  localStorage.setItem(BEST_SCORE_KEY, progress.bestScore.toString());
+  localStorage.setItem(TOTAL_ATTEMPTS_KEY, progress.totalAttempts.toString());
+}
+
+export function updateStreak(): number {
+  const today = new Date().toDateString();
+  const lastDate = localStorage.getItem(STREAK_DATE_KEY);
+
+  if (lastDate === today) {
+    return parseInt(localStorage.getItem(STREAK_KEY) || '0', 10);
+  }
+
+  const yesterday = new Date(Date.now() - 86400000).toDateString();
+  let streak = parseInt(localStorage.getItem(STREAK_KEY) || '0', 10);
+
+  if (lastDate === yesterday) {
+    streak += 1;
+  } else {
+    streak = 1; // Reset
+  }
+
+  localStorage.setItem(STREAK_KEY, streak.toString());
+  localStorage.setItem(STREAK_DATE_KEY, today);
+  return streak;
 }

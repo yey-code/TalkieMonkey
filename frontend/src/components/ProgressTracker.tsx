@@ -1,25 +1,39 @@
+import DifficultySelector from './DifficultySelector';
+import { getXpForLevel } from '../services/api';
+
 interface ProgressTrackerProps {
   attempts: number;
   bestScore: number;
   currentStreak: number;
   state: 'idle' | 'recording' | 'processing' | 'success' | 'tryAgain';
+  difficulty: number;
+  onDifficultyChange: (level: number) => void;
+  xp: number;
+  level: number;
 }
 
 /**
- * Sidebar progress tracker with stats and streak display.
- * Fills the left panel in the jungle dashboard layout.
+ * Sidebar progress tracker with stats, XP, streak, and difficulty selector.
  */
 export default function ProgressTracker({
   attempts,
   bestScore,
   currentStreak,
   state,
+  difficulty,
+  onDifficultyChange,
+  xp,
+  level,
 }: ProgressTrackerProps) {
   const stats = [
     { label: 'Tries', value: attempts, icon: '🎯', color: 'bg-sky-blue' },
     { label: 'Best', value: `${bestScore}%`, icon: '🏆', color: 'bg-banana-yellow' },
     { label: 'Streak', value: currentStreak, icon: '🔥', color: 'bg-sunset-pink' },
   ];
+
+  const xpForNext = getXpForLevel(level);
+  const xpInLevel = xp % xpForNext || (xp > 0 ? xpForNext : 0);
+  const xpProgress = Math.min((xpInLevel / xpForNext) * 100, 100);
 
   return (
     <div className="flex flex-col gap-3 h-full">
@@ -29,6 +43,28 @@ export default function ProgressTracker({
         <h1 className="text-lg lg:text-xl font-extrabold font-[Fredoka] text-gray-900 leading-tight">
           Talkie<br/>Monkey
         </h1>
+        <span className="text-[10px] font-bold text-gray-600/70 font-[Fredoka] uppercase tracking-wider">
+          v2.0
+        </span>
+      </div>
+
+      {/* XP / Level mini card */}
+      <div className="card-brutal-sm p-3">
+        <div className="flex items-center gap-2 mb-2">
+          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-grape-purple to-berry-pink border-2 border-[#2d3436] shadow-[2px_2px_0_#2d3436] flex items-center justify-center">
+            <span className="text-xs font-extrabold text-white font-[Fredoka]">{level}</span>
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wider font-[Fredoka]">Level</div>
+            <div className="text-xs font-bold text-grape-purple font-[Fredoka]">{xpInLevel}/{xpForNext} XP</div>
+          </div>
+        </div>
+        <div className="w-full h-2.5 bg-gray-100 rounded-full border border-[#2d3436] overflow-hidden">
+          <div
+            className="h-full rounded-full bg-gradient-to-r from-grape-purple to-berry-pink transition-all duration-700"
+            style={{ width: `${xpProgress}%` }}
+          />
+        </div>
       </div>
 
       {/* Stats */}
@@ -77,25 +113,12 @@ export default function ProgressTracker({
         </div>
       </div>
 
-      {/* Difficulty pills */}
+      {/* Difficulty selector */}
       <div className="card-brutal-sm p-3">
         <div className="text-xs font-bold text-gray-400 uppercase tracking-wider font-[Fredoka] mb-2">
-          Level
+          Difficulty
         </div>
-        <div className="flex gap-1.5">
-          {['🌱', '🌿', '🌳'].map((emoji, i) => (
-            <div
-              key={i}
-              className={`
-                w-8 h-8 rounded-lg border-2 border-[#2d3436] shadow-[2px_2px_0_#2d3436]
-                flex items-center justify-center text-sm
-                ${i === 0 ? 'bg-jungle-light' : 'bg-gray-50 opacity-40'}
-              `}
-            >
-              {emoji}
-            </div>
-          ))}
-        </div>
+        <DifficultySelector current={difficulty} onChange={onDifficultyChange} />
       </div>
     </div>
   );
