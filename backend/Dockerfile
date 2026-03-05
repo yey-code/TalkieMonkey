@@ -27,4 +27,5 @@ RUN mkdir -p storage/logs storage/framework/cache/data storage/framework/session
 
 EXPOSE 10000
 
-CMD php artisan serve --host=0.0.0.0 --port=${PORT:-10000}
+# Run migrations + seed on startup (idempotent), then start the server
+CMD php artisan migrate --force && php artisan db:seed --class=SentenceSeeder --force && php artisan serve --host=0.0.0.0 --port=${PORT:-10000}
