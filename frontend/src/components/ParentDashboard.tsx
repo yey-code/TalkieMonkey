@@ -114,7 +114,7 @@ export default function ParentDashboard() {
           </div>
         ) : (
           <div className="flex items-end justify-between gap-3 h-24">
-            {improvementTrend.map((w, i) => {
+            {improvementTrend.map((w) => {
               const barH = Math.max((w.avgScore / 100) * 80, 4);
               return (
                 <div key={w.week} className="flex flex-col items-center gap-1 flex-1">

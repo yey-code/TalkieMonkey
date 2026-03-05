@@ -477,8 +477,6 @@ function App() {
       <BottomNav
         activeTab={activeTab}
         onTabChange={setActiveTab}
-        xp={progress.xp}
-        level={progress.level}
       />
     </div>
   );

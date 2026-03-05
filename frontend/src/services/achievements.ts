@@ -148,7 +148,7 @@ export interface LevelUnlockStatus {
   hardRequirement: string;
 }
 
-export function getLevelUnlockStatus(xp: number, level: number, totalAttempts: number): LevelUnlockStatus {
+export function getLevelUnlockStatus(_xp: number, level: number, totalAttempts: number): LevelUnlockStatus {
   const mediumUnlocked = level >= 3 || totalAttempts >= 10;
   const hardUnlocked = level >= 6 || totalAttempts >= 30;
 

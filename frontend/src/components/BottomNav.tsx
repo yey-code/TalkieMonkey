@@ -3,8 +3,6 @@ export type TabId = 'practice' | 'rewards' | 'dashboard' | 'profile';
 interface BottomNavProps {
   activeTab: TabId;
   onTabChange: (tab: TabId) => void;
-  xp: number;
-  level: number;
 }
 
 const tabs: { id: TabId; icon: string; label: string }[] = [
@@ -21,8 +19,6 @@ const tabs: { id: TabId; icon: string; label: string }[] = [
 export default function BottomNav({
   activeTab,
   onTabChange,
-  xp,
-  level,
 }: BottomNavProps) {
   return (
     <div className="lg:hidden fixed bottom-0 left-0 right-0 z-50">
