@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
+import SpeakSlowButton from './SpeakSlowButton';
 
 interface SentenceDisplayProps {
   sentence: string;
-  comparison: { word: string; status: 'correct' | 'incorrect' }[] | null;
+  comparison: { word: string; status: 'correct' | 'incorrect'; confidence: number }[] | null;
   onWordClick: (word: string) => void;
   difficulty?: number;
 }
@@ -73,9 +74,35 @@ export default function SentenceDisplay({
             </span>
           ))}
         </div>
+        {/* Listen buttons */}
+        <div className="mt-4">
+          <SpeakSlowButton sentence={sentence} />
+        </div>
       </div>
     );
   }
+
+  // Helper: get style based on confidence level
+  const getWordStyle = (item: { status: string; confidence: number }) => {
+    if (item.status === 'correct') {
+      if (item.confidence >= 0.95) {
+        // Perfect match
+        return 'text-jungle-green bg-jungle-light cursor-default';
+      }
+      // Close match (fuzzy/positional) — show a softer green
+      return 'text-jungle-dark bg-emerald-100 cursor-default';
+    }
+    // Incorrect — red/pink
+    return 'text-sunset-pink bg-sunset-light cursor-pointer hover:scale-110 hover:bg-red-100 underline decoration-wavy decoration-sunset-pink/40 decoration-2';
+  };
+
+  const getWordIcon = (item: { status: string; confidence: number }) => {
+    if (item.status === 'correct') {
+      if (item.confidence >= 0.95) return '✓';
+      return '~'; // close but not perfect
+    }
+    return '🔊';
+  };
 
   // Show color-coded results
   return (
@@ -100,23 +127,22 @@ export default function SentenceDisplay({
               px-2 py-0.5 rounded-xl
               transition-all duration-300
               animate-pop-in
-              ${
-                item.status === 'correct'
-                  ? 'text-jungle-green bg-jungle-light cursor-default'
-                  : 'text-sunset-pink bg-sunset-light cursor-pointer hover:scale-110 hover:bg-red-100 underline decoration-wavy decoration-sunset-pink/40 decoration-2'
-              }
+              ${getWordStyle(item)}
             `}
             style={{ animationDelay: `${index * 80}ms` }}
-            title={item.status === 'incorrect' ? '🔊 Click to hear this word!' : '✅ Great!'}
+            title={
+              item.status === 'incorrect'
+                ? '🔊 Click for pronunciation help!'
+                : item.confidence >= 0.95
+                  ? '✅ Perfect!'
+                  : '✅ Close enough!'
+            }
             disabled={item.status === 'correct'}
           >
             {item.word}
-            {item.status === 'correct' && (
-              <span className="inline-block ml-1 text-base align-top">✓</span>
-            )}
-            {item.status === 'incorrect' && (
-              <span className="inline-block ml-1 text-base align-top">🔊</span>
-            )}
+            <span className="inline-block ml-1 text-base align-top">
+              {getWordIcon(item)}
+            </span>
           </button>
         ))}
       </div>

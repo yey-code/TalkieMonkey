@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\AiController;
 use App\Http\Controllers\Api\AudioEvaluationController;
 use App\Http\Controllers\Api\SentenceController;
 use Illuminate\Support\Facades\Route;
@@ -10,3 +11,7 @@ Route::get('/sentences/random', [SentenceController::class, 'random']);
 
 // Audio evaluation — forwards to Hugging Face Space for transcription
 Route::post('/evaluate-audio', [AudioEvaluationController::class, 'evaluate']);
+
+// AI-powered features (Groq)
+Route::post('/ai/tips', [AiController::class, 'pronunciationTips']);
+Route::post('/ai/recommend', [AiController::class, 'recommend']);

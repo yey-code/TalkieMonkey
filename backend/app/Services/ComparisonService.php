@@ -6,32 +6,71 @@ class ComparisonService
 {
     /**
      * Compare the target sentence with the transcribed text.
-     * Returns an array of word objects with status: 'correct' or 'incorrect'.
+     * Returns an array of word objects with status and a confidence score (0–1).
+     *
+     * Confidence levels:
+     *   1.0      — exact positional match
+     *   0.9      — exact word found at a different position
+     *   0.72–0.89 — fuzzy match (Levenshtein similarity >= 80%)
+     *   0.0–0.69 — no good match found → incorrect
      */
     public function compare(string $target, string $transcribed): array
     {
         $targetWords = $this->normalizeToWords($target);
         $transcribedWords = $this->normalizeToWords($transcribed);
+        $originalWords = $this->getOriginalWords($target);
 
         $result = [];
 
         foreach ($targetWords as $index => $word) {
-            // Use the original (non-normalized) word for display
-            $originalWord = $this->getOriginalWords($target)[$index] ?? $word;
+            $originalWord = $originalWords[$index] ?? $word;
 
-            // Check if the word exists at the same position in the transcription
-            $isCorrect = isset($transcribedWords[$index])
-                && $transcribedWords[$index] === $word;
-
-            // Also check if the word appears anywhere in the transcription (fuzzy positional match)
-            if (!$isCorrect) {
-                $isCorrect = in_array($word, $transcribedWords, true);
+            // 1. Exact positional match
+            if (isset($transcribedWords[$index]) && $transcribedWords[$index] === $word) {
+                $result[] = [
+                    'word' => $originalWord,
+                    'status' => 'correct',
+                    'confidence' => 1.0,
+                ];
+                continue;
             }
 
-            $result[] = [
-                'word' => $originalWord,
-                'status' => $isCorrect ? 'correct' : 'incorrect',
-            ];
+            // 2. Exact word found at a different position
+            if (in_array($word, $transcribedWords, true)) {
+                $result[] = [
+                    'word' => $originalWord,
+                    'status' => 'correct',
+                    'confidence' => 0.9,
+                ];
+                continue;
+            }
+
+            // 3. Fuzzy match — best Levenshtein similarity
+            $bestSimilarity = 0.0;
+            foreach ($transcribedWords as $tw) {
+                $maxLen = max(strlen($word), strlen($tw));
+                if ($maxLen === 0) {
+                    continue;
+                }
+                $distance = levenshtein($word, $tw);
+                $similarity = 1 - ($distance / $maxLen);
+                $bestSimilarity = max($bestSimilarity, $similarity);
+            }
+
+            if ($bestSimilarity >= 0.8) {
+                // Close enough — treat as correct but lower confidence
+                $result[] = [
+                    'word' => $originalWord,
+                    'status' => 'correct',
+                    'confidence' => round($bestSimilarity * 0.9, 2),
+                ];
+            } else {
+                $result[] = [
+                    'word' => $originalWord,
+                    'status' => 'incorrect',
+                    'confidence' => round($bestSimilarity, 2),
+                ];
+            }
         }
 
         return $result;

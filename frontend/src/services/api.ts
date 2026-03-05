@@ -9,6 +9,19 @@ export interface Sentence {
 export interface WordResult {
   word: string;
   status: 'correct' | 'incorrect';
+  confidence: number;
+}
+
+export interface WordTip {
+  phonetic: string;
+  tip: string;
+}
+
+export interface AiFeedback {
+  encouragement: string;
+  word_tips: Record<string, WordTip>;
+  practice_suggestion: string;
+  fun_fact: string;
 }
 
 export interface PronunciationResult {
@@ -17,6 +30,7 @@ export interface PronunciationResult {
   score: number;
   correct_count: number;
   total_count: number;
+  ai_feedback: AiFeedback | null;
 }
 
 /**
@@ -52,6 +66,63 @@ export async function evaluateAudio(audioBlob: Blob, sentenceId: number): Promis
   }
 
   return response.json();
+}
+
+/**
+ * Fetch pronunciation tips for specific words from Groq AI.
+ */
+export interface PronunciationTipDetail {
+  phonetic: string;
+  rhyme: string;
+  tip: string;
+}
+
+export async function fetchPronunciationTips(
+  words: string[]
+): Promise<{ tips: Record<string, PronunciationTipDetail> } | null> {
+  try {
+    const response = await fetch(`${API_BASE_URL}/ai/tips`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ words }),
+    });
+    if (!response.ok) return null;
+    return response.json();
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Get AI-powered practice recommendation.
+ */
+export interface AiRecommendation {
+  should_increase_difficulty: boolean;
+  message: string;
+  focus_words: string[];
+  encouragement_type: 'celebrate' | 'motivate' | 'comfort';
+}
+
+export async function fetchRecommendation(
+  difficulty: number,
+  recentScores: number[],
+  missedWords: string[]
+): Promise<AiRecommendation | null> {
+  try {
+    const response = await fetch(`${API_BASE_URL}/ai/recommend`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        difficulty,
+        recent_scores: recentScores,
+        missed_words: missedWords,
+      }),
+    });
+    if (!response.ok) return null;
+    return response.json();
+  } catch {
+    return null;
+  }
 }
 
 // ── XP helpers (client-side persistence via localStorage) ──

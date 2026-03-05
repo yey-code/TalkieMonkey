@@ -16,6 +16,8 @@ import LevelUpModal from './components/LevelUpModal';
 import RewardsPage from './components/RewardsPage';
 import ParentDashboard from './components/ParentDashboard';
 import ProfilePage from './components/ProfilePage';
+import AiFeedbackCard from './components/AiFeedbackCard';
+import PronunciationTipModal from './components/PronunciationTipModal';
 import { useAudioRecorder } from './hooks/useAudioRecorder';
 import {
   fetchRandomSentence,
@@ -28,6 +30,7 @@ import {
   type WordResult,
   type Sentence,
   type UserProgress,
+  type AiFeedback,
 } from './services/api';
 import {
   checkAchievements,
@@ -72,6 +75,10 @@ function App() {
   // Mobile difficulty picker
   const [showMobileDifficulty, setShowMobileDifficulty] = useState(false);
 
+  // AI feedback (Phase 3)
+  const [aiFeedback, setAiFeedback] = useState<AiFeedback | null>(null);
+  const [tipWord, setTipWord] = useState<string | null>(null);
+
   const { isRecording, startRecording, stopRecording, error: micError, analyserNode } =
     useAudioRecorder();
 
@@ -101,6 +108,7 @@ function App() {
       setTranscription('');
       setAppState('idle');
       setXpGained(0);
+      setAiFeedback(null);
       const data = await fetchRandomSentence(difficulty);
       setSentence(data);
     } catch {
@@ -133,6 +141,7 @@ function App() {
     setComparison(null);
     setTranscription('');
     setXpGained(0);
+    setAiFeedback(null);
     await startRecording();
     setAppState('recording');
   };
@@ -151,6 +160,9 @@ function App() {
       setScore(result.score);
       setCorrectCount(result.correct_count);
       setTotalCount(result.total_count);
+
+      // Store AI feedback from Groq (may be null if service unavailable)
+      setAiFeedback(result.ai_feedback || null);
 
       // Update session stats
       const newAttempts = attempts + 1;
@@ -247,14 +259,18 @@ function App() {
     }
   };
 
-  // TTS: speak a word using browser SpeechSynthesis
-  const speakWord = (word: string) => {
+  // Open pronunciation tip modal for a word (speaks it + shows AI tips)
+  const handleWordClick = (word: string) => {
+    // Speak the word immediately
     const stripped = word.replace(/[^a-zA-Z'-]/g, '');
     const utterance = new SpeechSynthesisUtterance(stripped);
     utterance.lang = 'en-US';
     utterance.rate = 0.75;
     utterance.pitch = 1.1;
     speechSynthesis.speak(utterance);
+
+    // Open the detailed tip modal
+    setTipWord(word);
   };
 
   // Try the same sentence again
@@ -262,6 +278,7 @@ function App() {
     setComparison(null);
     setTranscription('');
     setXpGained(0);
+    setAiFeedback(null);
     setAppState('idle');
   };
 
@@ -328,14 +345,18 @@ function App() {
           <SentenceDisplay
             sentence={sentence.content}
             comparison={comparison}
-            onWordClick={speakWord}
+            onWordClick={handleWordClick}
             difficulty={difficulty}
           />
         ) : null}
 
         {/* Transcription — "You said" feedback */}
         {transcription && comparison && (
-          <TranscriptionDisplay transcription={transcription} score={score} />
+          <TranscriptionDisplay
+            transcription={transcription}
+            score={score}
+            hasAiFeedback={!!aiFeedback}
+          />
         )}
 
         {/* Score (when available) */}
@@ -345,6 +366,14 @@ function App() {
             correctCount={correctCount}
             totalCount={totalCount}
             xpGained={xpGained}
+          />
+        )}
+
+        {/* AI Feedback Card (from Groq) */}
+        {aiFeedback && comparison && (
+          <AiFeedbackCard
+            feedback={aiFeedback}
+            onWordTipClick={handleWordClick}
           />
         )}
 
@@ -408,6 +437,14 @@ function App() {
         />
       )}
 
+      {/* ── Pronunciation Tip Modal (Phase 3) ── */}
+      {tipWord && (
+        <PronunciationTipModal
+          word={tipWord}
+          onClose={() => setTipWord(null)}
+        />
+      )}
+
       {/* ── Mobile difficulty picker overlay ── */}
       {showMobileDifficulty && (
         <div
@@ -466,7 +503,7 @@ function App() {
             {/* ── Bottom decorative strip ── */}
             <div className="flex items-center justify-center gap-2 py-1 opacity-50">
               <span className="text-xs font-bold text-white/60 font-[Fredoka]">
-                🐵 Talkie Monkey v2 — Made for young learners
+                🐵 Talkie Monkey v3 — AI-Powered Pronunciation Coach
               </span>
             </div>
           </main>

@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\PronunciationAttempt;
 use App\Models\Sentence;
 use App\Services\ComparisonService;
+use App\Services\GroqService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
@@ -14,7 +15,8 @@ use Illuminate\Support\Facades\Log;
 class AudioEvaluationController extends Controller
 {
     public function __construct(
-        private ComparisonService $comparisonService
+        private ComparisonService $comparisonService,
+        private GroqService $groqService,
     ) {}
 
     /**
@@ -71,13 +73,27 @@ class AudioEvaluationController extends Controller
             Log::warning('Failed to log pronunciation attempt: ' . $e->getMessage());
         }
 
-        // 5. Return JSON feedback to the React frontend
+        // 5. Generate AI feedback via Groq (non-blocking — if it fails, we still return)
+        $aiFeedback = null;
+        try {
+            $aiFeedback = $this->groqService->generateFeedback(
+                $targetText,
+                $transcription,
+                $comparison,
+                $score
+            );
+        } catch (\Exception $e) {
+            Log::warning('AI feedback generation failed: ' . $e->getMessage());
+        }
+
+        // 6. Return JSON feedback to the React frontend
         return response()->json([
             'transcription' => $transcription,
             'comparison' => $comparison,
             'score' => $score,
             'correct_count' => $correctCount,
             'total_count' => $totalCount,
+            'ai_feedback' => $aiFeedback,
         ]);
     }
 

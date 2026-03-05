@@ -1,6 +1,7 @@
 interface TranscriptionDisplayProps {
   transcription: string;
   score: number;
+  hasAiFeedback?: boolean;
 }
 
 /**
@@ -10,6 +11,7 @@ interface TranscriptionDisplayProps {
 export default function TranscriptionDisplay({
   transcription,
   score,
+  hasAiFeedback,
 }: TranscriptionDisplayProps) {
   const getEmoji = () => {
     if (score === 100) return '🌟';
@@ -27,9 +29,16 @@ export default function TranscriptionDisplay({
         </div>
         {/* Content */}
         <div className="flex-1 min-w-0">
-          <p className="text-xs font-bold text-gray-400 uppercase tracking-widest font-[Fredoka] mb-1">
-            🎧 I heard you say
-          </p>
+          <div className="flex items-center gap-2">
+            <p className="text-xs font-bold text-gray-400 uppercase tracking-widest font-[Fredoka] mb-1">
+              🎧 I heard you say
+            </p>
+            {hasAiFeedback && (
+              <span className="text-[9px] font-bold text-grape-purple bg-grape-light px-1.5 py-0.5 rounded-full border border-grape-purple/30 mb-1">
+                🧠 AI
+              </span>
+            )}
+          </div>
           <p className="text-base md:text-lg font-bold text-gray-800 font-[Fredoka] leading-relaxed">
             "{transcription}"
           </p>
