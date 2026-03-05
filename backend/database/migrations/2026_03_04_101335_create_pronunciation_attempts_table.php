@@ -11,6 +11,10 @@ return new class extends Migration
      */
     public function up(): void
     {
+        if (Schema::hasTable('pronunciation_attempts')) {
+            return;
+        }
+
         Schema::create('pronunciation_attempts', function (Blueprint $table) {
             $table->id();
             $table->foreignId('sentence_id')->constrained()->onDelete('cascade');
