@@ -1,0 +1,16 @@
+vendor/
+node_modules/
+.env
+.env.backup
+.env.production
+storage/logs/*
+storage/framework/cache/data/*
+storage/framework/sessions/*
+storage/framework/views/*
+tests/
+.git
+.gitignore
+README.md
+phpunit.xml
+test_db.php
+test_db2.php
