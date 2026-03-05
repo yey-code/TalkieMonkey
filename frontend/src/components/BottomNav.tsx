@@ -1,52 +1,61 @@
+export type TabId = 'practice' | 'rewards' | 'dashboard' | 'profile';
+
 interface BottomNavProps {
-  attempts: number;
-  bestScore: number;
-  streak: number;
+  activeTab: TabId;
+  onTabChange: (tab: TabId) => void;
   xp: number;
   level: number;
-  onDifficultyTap: () => void;
 }
 
+const tabs: { id: TabId; icon: string; label: string }[] = [
+  { id: 'practice', icon: '🏠', label: 'Practice' },
+  { id: 'rewards', icon: '🏆', label: 'Rewards' },
+  { id: 'dashboard', icon: '📊', label: 'Progress' },
+  { id: 'profile', icon: '👤', label: 'Profile' },
+];
+
 /**
- * Mobile-only bottom navigation bar with quick stats.
- * Fixed at bottom, hidden on desktop. Glass morphism + neo-brutalism hybrid.
+ * Mobile-only bottom navigation bar with tab switching.
+ * Fixed at bottom, hidden on desktop.
  */
 export default function BottomNav({
-  attempts,
-  bestScore,
-  streak,
+  activeTab,
+  onTabChange,
   xp,
   level,
-  onDifficultyTap,
 }: BottomNavProps) {
-  const stats = [
-    { icon: '🎯', val: attempts, label: 'Tries' },
-    { icon: '🏆', val: `${bestScore}%`, label: 'Best' },
-    { icon: '🔥', val: streak, label: 'Streak' },
-  ];
-
   return (
     <div className="lg:hidden fixed bottom-0 left-0 right-0 z-50">
-      <div className="mx-2 mb-2 rounded-2xl border-2 border-[#2d3436] bg-white/95 backdrop-blur-md shadow-[4px_-2px_0_#2d3436] px-3 py-2">
-        <div className="flex items-center justify-between">
-          {/* Level badge */}
-          <button
-            onClick={onDifficultyTap}
-            className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-gradient-to-r from-grape-purple to-berry-pink border-2 border-[#2d3436] shadow-[2px_2px_0_#2d3436]"
-          >
-            <span className="text-sm font-extrabold text-white font-[Fredoka]">Lv.{level}</span>
-            <span className="text-xs font-bold text-white/80 font-[Fredoka]">{xp} XP</span>
-          </button>
-
-          {/* Quick stats */}
-          <div className="flex gap-3">
-            {stats.map((s) => (
-              <div key={s.label} className="flex flex-col items-center">
-                <span className="text-sm">{s.icon}</span>
-                <span className="text-xs font-extrabold text-gray-800 font-[Fredoka]">{s.val}</span>
-              </div>
-            ))}
-          </div>
+      <div className="mx-2 mb-2 rounded-2xl border-2 border-[#2d3436] bg-white/95 backdrop-blur-md shadow-[4px_-2px_0_#2d3436] px-2 py-1.5">
+        <div className="flex items-center justify-around">
+          {tabs.map((tab) => {
+            const isActive = activeTab === tab.id;
+            return (
+              <button
+                key={tab.id}
+                onClick={() => onTabChange(tab.id)}
+                className={`
+                  flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl
+                  transition-all duration-200
+                  ${isActive
+                    ? 'bg-gradient-to-b from-banana-yellow/30 to-monkey-orange/20 scale-110'
+                    : 'opacity-60 hover:opacity-80'
+                  }
+                `}
+              >
+                <span className={`text-lg ${isActive ? 'scale-110' : ''} transition-transform`}>
+                  {tab.icon}
+                </span>
+                <span
+                  className={`text-[10px] font-extrabold font-[Fredoka] tracking-wider
+                    ${isActive ? 'text-gray-800' : 'text-gray-400'}
+                  `}
+                >
+                  {tab.label}
+                </span>
+              </button>
+            );
+          })}
         </div>
       </div>
     </div>

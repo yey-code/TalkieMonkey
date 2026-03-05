@@ -11,8 +11,11 @@ import ToastContainer, { showToast } from './components/Toast';
 import XpProgressBar from './components/XpProgressBar';
 import TranscriptionDisplay from './components/TranscriptionDisplay';
 import DifficultySelector from './components/DifficultySelector';
-import BottomNav from './components/BottomNav';
+import BottomNav, { type TabId } from './components/BottomNav';
 import LevelUpModal from './components/LevelUpModal';
+import RewardsPage from './components/RewardsPage';
+import ParentDashboard from './components/ParentDashboard';
+import ProfilePage from './components/ProfilePage';
 import { useAudioRecorder } from './hooks/useAudioRecorder';
 import {
   fetchRandomSentence,
@@ -26,6 +29,13 @@ import {
   type Sentence,
   type UserProgress,
 } from './services/api';
+import {
+  checkAchievements,
+  loadAchievements,
+  getLevelUnlockStatus,
+  type Achievement,
+} from './services/achievements';
+import { saveSessionEntry } from './services/sessionHistory';
 
 type AppState = 'idle' | 'recording' | 'processing' | 'success' | 'tryAgain';
 
@@ -53,6 +63,12 @@ function App() {
   const [xpGained, setXpGained] = useState(0);
   const [showLevelUp, setShowLevelUp] = useState(false);
 
+  // Navigation
+  const [activeTab, setActiveTab] = useState<TabId>('practice');
+
+  // Achievements
+  const [achievements, setAchievements] = useState<Achievement[]>(loadAchievements);
+
   // Mobile difficulty picker
   const [showMobileDifficulty, setShowMobileDifficulty] = useState(false);
 
@@ -66,12 +82,16 @@ function App() {
     setBestScore(saved.bestScore);
     setAttempts(saved.totalAttempts);
     setCurrentStreak(saved.streak);
+    setAchievements(loadAchievements());
   }, []);
 
   // Show mic error as toast
   useEffect(() => {
     if (micError) showToast(micError, 'error');
   }, [micError]);
+
+  // Level unlock status
+  const unlockStatus = getLevelUnlockStatus(progress.xp, progress.level, attempts);
 
   // Load a sentence on mount and when difficulty changes
   const loadSentence = useCallback(async () => {
@@ -94,8 +114,16 @@ function App() {
     loadSentence();
   }, [loadSentence]);
 
-  // Handle difficulty change
+  // Handle difficulty change (with unlock check)
   const handleDifficultyChange = (level: number) => {
+    if (level === 2 && !unlockStatus.medium) {
+      showToast('🔒 Reach Level 3 or 10 attempts to unlock Medium!', 'info');
+      return;
+    }
+    if (level === 3 && !unlockStatus.hard) {
+      showToast('🔒 Reach Level 6 or 30 attempts to unlock Hard!', 'info');
+      return;
+    }
     setDifficulty(level);
     setShowMobileDifficulty(false);
   };
@@ -162,6 +190,42 @@ function App() {
       setProgress(updatedProgress);
       saveProgress(updatedProgress);
 
+      // Save session history entry
+      const wordsMissed = result.comparison
+        .filter((w) => w.status === 'incorrect')
+        .map((w) => w.word);
+      saveSessionEntry({
+        timestamp: Date.now(),
+        sentenceId: sentence.id,
+        sentence: sentence.content,
+        score: result.score,
+        difficulty,
+        wordsMissed,
+        xpEarned: earned,
+        totalWords: result.total_count,
+        correctWords: result.correct_count,
+      });
+
+      // Check achievements
+      const newUnlockStatus = getLevelUnlockStatus(newXp, newLevel, newAttempts);
+      const { achievements: updatedAch, newlyUnlocked } = checkAchievements({
+        totalAttempts: newAttempts,
+        currentStreak: newStreak,
+        totalXp: newXp,
+        lastScore: result.score,
+        lastDifficulty: difficulty,
+        mediumUnlocked: newUnlockStatus.medium,
+        hardUnlocked: newUnlockStatus.hard,
+      });
+      setAchievements(updatedAch);
+
+      // Show achievement toasts
+      newlyUnlocked.forEach((a) => {
+        setTimeout(() => {
+          showToast(`🎖️ Badge unlocked: ${a.emoji} ${a.title}!`, 'success');
+        }, 500);
+      });
+
       // Success or try again
       if (result.score >= 80) {
         setAppState('success');
@@ -201,6 +265,130 @@ function App() {
     setAppState('idle');
   };
 
+  // Handle progress update from Rewards page (e.g. daily chest XP)
+  const handleProgressUpdate = (updated: UserProgress) => {
+    setProgress(updated);
+  };
+
+  // ── Render active tab content ──
+  const renderTabContent = () => {
+    switch (activeTab) {
+      case 'rewards':
+        return (
+          <RewardsPage
+            achievements={achievements}
+            progress={progress}
+            onProgressUpdate={handleProgressUpdate}
+          />
+        );
+      case 'dashboard':
+        return <ParentDashboard />;
+      case 'profile':
+        return <ProfilePage progress={progress} achievements={achievements} />;
+      default:
+        return renderPracticeTab();
+    }
+  };
+
+  const renderPracticeTab = () => (
+    <>
+      {/* ── Mobile top bar: logo + mascot inline ── */}
+      <div className="lg:hidden flex items-center gap-3">
+        <div className="card-brutal bg-gradient-to-r from-monkey-orange to-banana-yellow px-3 py-2 flex items-center gap-2">
+          <span className="text-xl">🐵</span>
+          <span className="text-sm font-extrabold font-[Fredoka] text-gray-900">Talkie Monkey</span>
+        </div>
+        <div className="ml-auto">
+          <MonkeyMascot state={appState} compact />
+        </div>
+      </div>
+
+      {/* ── Mobile difficulty selector ── */}
+      <div className="lg:hidden">
+        <DifficultySelector
+          current={difficulty}
+          onChange={handleDifficultyChange}
+          unlockStatus={unlockStatus}
+        />
+      </div>
+
+      {/* ── Content Area: Single column, mobile-first ── */}
+      <div className="flex flex-col gap-3 flex-1 min-h-0">
+        {/* Sentence Card */}
+        {loading ? (
+          <div className="card-brutal bg-white p-6 md:p-8 flex items-center justify-center">
+            <div className="text-center">
+              <div className="text-5xl animate-float-gentle mb-3">🐵</div>
+              <p className="text-lg font-bold text-gray-400 font-[Fredoka]">
+                Loading a sentence...
+              </p>
+            </div>
+          </div>
+        ) : sentence ? (
+          <SentenceDisplay
+            sentence={sentence.content}
+            comparison={comparison}
+            onWordClick={speakWord}
+            difficulty={difficulty}
+          />
+        ) : null}
+
+        {/* Transcription — "You said" feedback */}
+        {transcription && comparison && (
+          <TranscriptionDisplay transcription={transcription} score={score} />
+        )}
+
+        {/* Score (when available) */}
+        {comparison && (
+          <ScoreDisplay
+            score={score}
+            correctCount={correctCount}
+            totalCount={totalCount}
+            xpGained={xpGained}
+          />
+        )}
+
+        {/* ── Record Button (centered, big CTA) ── */}
+        {sentence && !loading && appState !== 'success' && appState !== 'tryAgain' && (
+          <div className="flex flex-col items-center py-4">
+            <RecordButton
+              isRecording={isRecording}
+              isProcessing={appState === 'processing'}
+              onStart={handleStartRecording}
+              onStop={handleStopRecording}
+              analyserNode={analyserNode}
+            />
+          </div>
+        )}
+
+        {/* Desktop mascot (hidden on mobile) */}
+        {sentence && !loading && (
+          <div className="hidden lg:flex justify-center">
+            <MonkeyMascot state={appState} />
+          </div>
+        )}
+
+        {/* Action buttons (when results) */}
+        <ActionButtons
+          hasResults={comparison !== null}
+          onTryAgain={handleTryAgain}
+          onNextSentence={loadSentence}
+        />
+
+        {/* Hint text when results shown (mobile) */}
+        {(appState === 'success' || appState === 'tryAgain') && (
+          <div className="text-center animate-float-in lg:hidden">
+            <p className="text-sm font-bold text-white/70 font-[Fredoka] drop-shadow">
+              {appState === 'success'
+                ? '🎉 Awesome! Try the next one!'
+                : '👆 Tap red words to hear them, then try again!'}
+            </p>
+          </div>
+        )}
+      </div>
+    </>
+  );
+
   return (
     <div className="h-screen w-screen overflow-hidden relative">
       {/* ── Animated background ── */}
@@ -233,7 +421,11 @@ function App() {
             <p className="text-xs font-bold text-gray-400 uppercase tracking-widest font-[Fredoka] mb-3">
               Choose Difficulty
             </p>
-            <DifficultySelector current={difficulty} onChange={handleDifficultyChange} />
+            <DifficultySelector
+              current={difficulty}
+              onChange={handleDifficultyChange}
+              unlockStatus={unlockStatus}
+            />
           </div>
         </div>
       )}
@@ -243,7 +435,7 @@ function App() {
         <div className="h-full grid grid-cols-1 lg:grid-cols-[240px_1fr] xl:grid-cols-[280px_1fr] gap-3 md:gap-4">
 
           {/* ── LEFT SIDEBAR (hidden on mobile, shown on lg+) ── */}
-          <aside className="hidden lg:block">
+          <aside className="hidden lg:flex flex-col gap-3 overflow-y-auto custom-scrollbar">
             <ProgressTracker
               attempts={attempts}
               bestScore={bestScore}
@@ -253,6 +445,8 @@ function App() {
               onDifficultyChange={handleDifficultyChange}
               xp={progress.xp}
               level={progress.level}
+              activeTab={activeTab}
+              onTabChange={(t) => setActiveTab(t as TabId)}
             />
           </aside>
 
@@ -266,96 +460,8 @@ function App() {
               xpGained={xpGained}
             />
 
-            {/* ── Mobile top bar: logo + mascot inline ── */}
-            <div className="lg:hidden flex items-center gap-3">
-              <div className="card-brutal bg-gradient-to-r from-monkey-orange to-banana-yellow px-3 py-2 flex items-center gap-2">
-                <span className="text-xl">🐵</span>
-                <span className="text-sm font-extrabold font-[Fredoka] text-gray-900">Talkie Monkey</span>
-              </div>
-              {/* Monkey mascot inline on mobile */}
-              <div className="ml-auto">
-                <MonkeyMascot state={appState} compact />
-              </div>
-            </div>
-
-            {/* ── Content Area: Single column, mobile-first ── */}
-            <div className="flex flex-col gap-3 flex-1 min-h-0">
-
-              {/* Sentence Card */}
-              {loading ? (
-                <div className="card-brutal bg-white p-6 md:p-8 flex items-center justify-center">
-                  <div className="text-center">
-                    <div className="text-5xl animate-float-gentle mb-3">🐵</div>
-                    <p className="text-lg font-bold text-gray-400 font-[Fredoka]">
-                      Loading a sentence...
-                    </p>
-                  </div>
-                </div>
-              ) : sentence ? (
-                <SentenceDisplay
-                  sentence={sentence.content}
-                  comparison={comparison}
-                  onWordClick={speakWord}
-                  difficulty={difficulty}
-                />
-              ) : null}
-
-              {/* Transcription — "You said" feedback */}
-              {transcription && comparison && (
-                <TranscriptionDisplay
-                  transcription={transcription}
-                  score={score}
-                />
-              )}
-
-              {/* Score (when available) */}
-              {comparison && (
-                <ScoreDisplay
-                  score={score}
-                  correctCount={correctCount}
-                  totalCount={totalCount}
-                  xpGained={xpGained}
-                />
-              )}
-
-              {/* ── Record Button (centered, big CTA) ── */}
-              {sentence && !loading && appState !== 'success' && appState !== 'tryAgain' && (
-                <div className="flex flex-col items-center py-4">
-                  <RecordButton
-                    isRecording={isRecording}
-                    isProcessing={appState === 'processing'}
-                    onStart={handleStartRecording}
-                    onStop={handleStopRecording}
-                    analyserNode={analyserNode}
-                  />
-                </div>
-              )}
-
-              {/* Desktop mascot (hidden on mobile) */}
-              {sentence && !loading && (
-                <div className="hidden lg:flex justify-center">
-                  <MonkeyMascot state={appState} />
-                </div>
-              )}
-
-              {/* Action buttons (when results) */}
-              <ActionButtons
-                hasResults={comparison !== null}
-                onTryAgain={handleTryAgain}
-                onNextSentence={loadSentence}
-              />
-
-              {/* Hint text when results shown (mobile) */}
-              {(appState === 'success' || appState === 'tryAgain') && (
-                <div className="text-center animate-float-in lg:hidden">
-                  <p className="text-sm font-bold text-white/70 font-[Fredoka] drop-shadow">
-                    {appState === 'success'
-                      ? '🎉 Awesome! Try the next one!'
-                      : '👆 Tap red words to hear them, then try again!'}
-                  </p>
-                </div>
-              )}
-            </div>
+            {/* ── Active Tab Content ── */}
+            {renderTabContent()}
 
             {/* ── Bottom decorative strip ── */}
             <div className="flex items-center justify-center gap-2 py-1 opacity-50">
@@ -369,12 +475,10 @@ function App() {
 
       {/* ── Mobile Bottom Nav ── */}
       <BottomNav
-        attempts={attempts}
-        bestScore={bestScore}
-        streak={currentStreak}
+        activeTab={activeTab}
+        onTabChange={setActiveTab}
         xp={progress.xp}
         level={progress.level}
-        onDifficultyTap={() => setShowMobileDifficulty(true)}
       />
     </div>
   );

@@ -1,5 +1,6 @@
 import DifficultySelector from './DifficultySelector';
 import { getXpForLevel } from '../services/api';
+import { getLevelUnlockStatus } from '../services/achievements';
 
 interface ProgressTrackerProps {
   attempts: number;
@@ -10,6 +11,8 @@ interface ProgressTrackerProps {
   onDifficultyChange: (level: number) => void;
   xp: number;
   level: number;
+  activeTab?: string;
+  onTabChange?: (tab: string) => void;
 }
 
 /**
@@ -24,6 +27,8 @@ export default function ProgressTracker({
   onDifficultyChange,
   xp,
   level,
+  activeTab,
+  onTabChange,
 }: ProgressTrackerProps) {
   const stats = [
     { label: 'Tries', value: attempts, icon: '🎯', color: 'bg-sky-blue' },
@@ -34,6 +39,7 @@ export default function ProgressTracker({
   const xpForNext = getXpForLevel(level);
   const xpInLevel = xp % xpForNext || (xp > 0 ? xpForNext : 0);
   const xpProgress = Math.min((xpInLevel / xpForNext) * 100, 100);
+  const unlockStatus = getLevelUnlockStatus(xp, level, attempts);
 
   return (
     <div className="flex flex-col gap-3 h-full">
@@ -118,8 +124,38 @@ export default function ProgressTracker({
         <div className="text-xs font-bold text-gray-400 uppercase tracking-wider font-[Fredoka] mb-2">
           Difficulty
         </div>
-        <DifficultySelector current={difficulty} onChange={onDifficultyChange} />
+        <DifficultySelector current={difficulty} onChange={onDifficultyChange} unlockStatus={unlockStatus} />
       </div>
+
+      {/* Desktop Nav Tabs */}
+      {onTabChange && (
+        <div className="card-brutal-sm p-2 flex flex-col gap-1">
+          {[
+            { id: 'practice', icon: '🏠', label: 'Practice' },
+            { id: 'rewards', icon: '🏆', label: 'Rewards' },
+            { id: 'dashboard', icon: '📊', label: 'Dashboard' },
+            { id: 'profile', icon: '👤', label: 'Profile' },
+          ].map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => onTabChange(tab.id)}
+              className={`
+                flex items-center gap-2 px-3 py-2 rounded-lg text-left
+                transition-all duration-200
+                ${activeTab === tab.id
+                  ? 'bg-banana-light border-2 border-[#2d3436] shadow-[2px_2px_0_#2d3436] font-extrabold'
+                  : 'hover:bg-gray-50 font-bold opacity-60 hover:opacity-80'
+                }
+              `}
+            >
+              <span className="text-sm">{tab.icon}</span>
+              <span className="text-xs font-[Fredoka] text-gray-800 uppercase tracking-wider">
+                {tab.label}
+              </span>
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
